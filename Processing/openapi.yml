@@ -1,0 +1,48 @@
+openapi: 3.0.0
+info:
+  title: Event Stats API
+  description: API to retrieve event statistics
+  version: "1.0.0"
+paths:
+  /stats:
+    get:
+      summary: Gets event stats
+      operationId: app.get_stats
+      description: Returns statistics on events received
+      responses:
+        '200':
+          description: Successfully returned stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventStats'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+components:
+  schemas:
+    EventStats:
+      type: object
+      properties:
+        num_sensor_data_events:
+          type: integer
+          example: 1000
+        max_temperature:
+          type: number  
+          example: 35.5
+        num_user_commands:
+          type: integer
+          example: 500
+        max_target_temperature:
+          type: number  
+          example: 30.0
+        last_updated:
+          type: string
+          format: date-time
+          example: "2024-10-02T00:00:00Z"

@@ -1,0 +1,193 @@
+openapi: 3.0.0
+info:
+  title: Smart Home Automation System API
+  description: API for receiving events from smart home devices and user commands.
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /sensor-data:
+    post:
+      summary: Receive sensor data events
+      operationId: app.receive_sensor_data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sensordata_body'
+      responses:
+        "201":
+          description: Event received successfully
+        "400":
+          description: Invalid input
+    get:
+      summary: Get sensor data readings
+      operationId: app.get_sensor_data_readings
+      description: Get sensor data readings between start and end timestamps
+      parameters:
+      - name: start_timestamp
+        in: query
+        description: Start timestamp for filtering sensor data
+        required: true
+        schema:
+          type: string
+          format: date-time
+          example: 2024-10-01T00:00:00
+      - name: end_timestamp
+        in: query
+        description: End timestamp for filtering sensor data
+        required: true
+        schema:
+          type: string
+          format: date-time
+          example: 2024-10-02T00:00:00
+      responses:
+        '200':
+          description: Successfully returned sensor data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SensorData'
+        '400':
+          description: Invalid request
+
+  /user-command:
+    post:
+      summary: Receive user command events
+      operationId: app.receive_user_command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/usercommand_body'
+      responses:
+        "201":
+          description: Event received successfully
+        "400":
+          description: Invalid input
+    get:
+      summary: Get user command events
+      operationId: app.get_user_command_events
+      description: Get user command events between start and end timestamps
+      parameters:
+      - name: start_timestamp
+        in: query
+        description: Start timestamp for filtering user commands
+        required: true
+        schema:
+          type: string
+          format: date-time
+          example: 2024-10-01T00:00:00
+      - name: end_timestamp
+        in: query
+        description: End timestamp for filtering user commands
+        required: true
+        schema:
+          type: string
+          format: date-time
+          example: 2024-10-02T00:00:00
+      responses:
+        '200':
+          description: Successfully returned user command events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserCommand'
+        '400':
+          description: Invalid request
+
+components:
+  schemas:
+    sensordata_body:
+      type: object
+      required: 
+        - sensorId
+        - temperature
+        - timestamp
+        - location
+      properties:
+        temperature:
+          type: number
+          description: Temperature reading from the sensor
+        timestamp:
+          type: string
+          description: Time when the data was recorded
+          format: date-time
+        sensorId:
+          type: string
+          description: UUID of the sensor sending the data
+        location:
+          type: string
+          description: Location of the sensor
+        traceId:
+          type: string
+          description: Trace ID for tracking events
+
+    usercommand_body:
+      type: object
+      required: 
+        - targetTemperature
+        - userId
+        - targetDevice
+        - timestamp
+      properties:
+        timestamp:
+          type: string
+          description: Time when the command was issued
+          format: date-time
+        userId:
+          type: string
+          description: UUID of the user sending the command
+        targetDevice:
+          type: string
+          description: Device to which the command is directed
+        targetTemperature:
+          type: number
+          description: Target temperature to set the thermostat to
+        traceId:
+          type: string
+          description: Trace ID for tracking events
+
+    SensorData:
+      type: object
+      properties:
+        id:
+          type: integer
+        sensor_id:
+          type: string
+        temperature:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: string
+        trace_id:
+          type: string
+        date_created:
+          type: string
+          format: date-time
+
+    UserCommand:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        target_device:
+          type: string
+        target_temperature:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        trace_id:
+          type: string
+        date_created:
+          type: string
+          format: date-time

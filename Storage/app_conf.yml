@@ -1,0 +1,12 @@
+version: 1
+datastore:
+  user: 
+  password: 
+  hostname: 
+  port: 3306
+  db: events
+
+events:
+  hostname: 
+  port: 9092
+  topic: events

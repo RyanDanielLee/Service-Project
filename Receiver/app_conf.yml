@@ -1,0 +1,10 @@
+version: 1
+eventstore1:
+  url: http://localhost:8090/sensor-data
+eventstore2:
+  url: http://localhost:8090/user-command
+
+events:
+  hostname: ryankafkajenkins.westus2.cloudapp.azure.com
+  port: 9092
+  topic: events

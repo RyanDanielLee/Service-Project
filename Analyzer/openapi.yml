@@ -1,0 +1,108 @@
+openapi: 3.0.0
+info:
+  description: This API provides analyzer info
+  version: "1.0.0"
+  title: Analyzer API
+servers:
+  - url: /
+paths:
+  /sensor_data:
+    get:
+      summary: gets a sensor data reading from history
+      operationId: app.get_sensor_data_reading
+      parameters:
+        - name: index
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Successfully returned sensor data event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /user_command:
+    get:
+      summary: gets a user command reading from history
+      operationId: app.get_user_command_reading
+      parameters:
+        - name: index
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Successfully returned user command event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCommand'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /stats:
+    get:
+      summary: gets the event stats
+      operationId: app.get_event_stats
+      responses:
+        '200':
+          description: Successfully returned event stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+components:
+  schemas:
+    SensorData:
+      type: object
+      properties:
+        sensorId:
+          type: string
+        temperature:
+          type: number
+        timestamp:
+          type: string
+        location:
+          type: string
+        trace_id:
+          type: string
+    UserCommand:
+      type: object
+      properties:
+        userId:
+          type: string
+        targetDevice:
+          type: string
+        targetTemperature:
+          type: number
+        timestamp:
+          type: string
+        trace_id:
+          type: string
+    Stats:
+      type: object
+      properties:
+        num_sensor_data:
+          type: integer
+        num_user_command:
+          type: integer
