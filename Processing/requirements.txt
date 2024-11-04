@@ -1,3 +1,7 @@
-connexion==3.1.0
-swagger-ui-bundle==1.1.0
-APScheduler==3.10.4
+flask
+connexion
+connexion[flask]
+connexion[uvicorn]
+swagger_ui_bundle
+APScheduler
+setuptools
