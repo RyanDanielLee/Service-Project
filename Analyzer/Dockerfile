@@ -1,6 +1,6 @@
-FROM ubuntu:24.04
+FROM python:3
 
-LABEL maintainer="rlee356@my.bcit.ca" 
+LABEL maintainer="rlee356@my.bcit.ca"
 
 RUN apt-get update -y && \
     apt-get install -y python3 python3-pip python3-venv
@@ -15,8 +15,6 @@ COPY ./requirements.txt /app/requirements.txt
 RUN ./venv/bin/pip install -r requirements.txt
 
 COPY . /app
-
-EXPOSE 8110 
 
 ENTRYPOINT [ "./venv/bin/python" ]
 
