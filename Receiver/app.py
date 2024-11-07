@@ -58,15 +58,15 @@ def receive_sensor_data(body):
 
         logger.info(f"Produced sensor data event with trace id: {trace_id}")
 
-        # Forward the event to the storage service
-        try:
-            response = requests.post(app_config['eventstore1']['url'], json=body)
-            if response.status_code != 201:
-                logger.error(f"Failed to store sensor data in storage service: {response.text}")
-                return {"error": "Failed to store event in storage service"}, 500
-        except Exception as e:
-            logger.error(f"Error forwarding to storage service: {str(e)}")
-            return {"error": "Failed to forward event to storage service"}, 500
+        # # Forward the event to the storage service
+        # try:
+        #     response = requests.post(app_config['eventstore1']['url'], json=body)
+        #     if response.status_code != 201:
+        #         logger.error(f"Failed to store sensor data in storage service: {response.text}")
+        #         return {"error": "Failed to store event in storage service"}, 500
+        # except Exception as e:
+        #     logger.error(f"Error forwarding to storage service: {str(e)}")
+        #     return {"error": "Failed to forward event to storage service"}, 500
 
         return NoContent, 201
 
@@ -113,14 +113,14 @@ def receive_user_command(body):
 
         logger.info(f"Produced user command event with trace id: {trace_id}")
 
-        try:
-            response = requests.post(app_config['eventstore2']['url'], json=body)
-            if response.status_code != 201:
-                logger.error(f"Failed to store user command in storage service: {response.text}")
-                return {"error": "Failed to store event in storage service"}, 500
-        except Exception as e:
-            logger.error(f"Error forwarding to storage service: {str(e)}")
-            return {"error": "Failed to forward event to storage service"}, 500
+        # try:
+        #     response = requests.post(app_config['eventstore2']['url'], json=body)
+        #     if response.status_code != 201:
+        #         logger.error(f"Failed to store user command in storage service: {response.text}")
+        #         return {"error": "Failed to store event in storage service"}, 500
+        # except Exception as e:
+        #     logger.error(f"Error forwarding to storage service: {str(e)}")
+        #     return {"error": "Failed to forward event to storage service"}, 500
 
         return NoContent, 201
 

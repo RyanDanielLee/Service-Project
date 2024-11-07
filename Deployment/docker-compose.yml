@@ -6,6 +6,8 @@ services:
     ports:
       - "2181"
     hostname: zookeeper
+    networks:
+      - app-network
 
   kafka:
     image: wurstmeister/kafka
@@ -14,32 +16,69 @@ services:
       - "9092:9092"
     hostname: kafka
     environment:
-      KAFKA_CREATE_TOPICS: "events:1:1" # topic:partition:replicas
-      KAFKA_ADVERTISED_HOST_NAME: ryankafkajenkins.westus2.cloudapp.azure.com # docker-machine ip
+      KAFKA_CREATE_TOPICS: "events:1:1"  # topic:partition:replicas
+      KAFKA_ADVERTISED_HOST_NAME: kafka  # Internal hostname for Docker
       KAFKA_LISTENERS: INSIDE://:29092,OUTSIDE://:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://ryan.westus2.cloudapp.azure.com:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://ryankafkajenkins.westus2.cloudapp.azure.com:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - "zookeeper"
+    networks:
+      - app-network
 
   db:
     image: mysql:5.7
     restart: always
     environment:
       MYSQL_DATABASE: 'events'
-      MYSQL_USER: 'ryankafkajenkins'  # You can use root if you like
-      MYSQL_PASSWORD: 'Jenkins'  # Set your password
-      MYSQL_ROOT_PASSWORD: 'Jenkins'  # Root access password
+      MYSQL_USER: 'ryankafkajenkins'
+      MYSQL_PASSWORD: 'Jenkins'
+      MYSQL_ROOT_PASSWORD: 'Jenkins'
     ports:
       - '3306:3306'  # External port : MySQL internal port
     expose:
       - '3306'  # Opens port 3306 inside the container
     volumes:
-      - my-db:/var/lib/mysql 
+      - my-db:/var/lib/mysql
+    networks:
+      - app-network
+
+  receiver:
+    image: receiver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "kafka"
+
+  storage:
+    image: storage
+    ports:
+      - "8090:8090"
+    depends_on:
+      - "kafka"
+      - "db"
+
+  processing:
+    image: processing
+    ports:
+      - "8100:8100"
+    depends_on:
+      - "storage"
+
+  analyzer:
+    image: analyzer
+    ports:
+      - "8110:8110"
+    depends_on:
+      - "kafka"
 
 volumes:
   my-db:
+
+networks:
+  app-network:
+    driver: bridge

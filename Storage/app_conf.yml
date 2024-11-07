@@ -2,11 +2,11 @@ version: 1
 datastore:
   user: 
   password: 
-  hostname: 
+  hostname: ryankafkajenkins.westus2.cloudapp.azure.com
   port: 3306
   db: events
 
 events:
-  hostname: 
+  hostname: ryankafkajenkins.westus2.cloudapp.azure.com
   port: 9092
   topic: events
