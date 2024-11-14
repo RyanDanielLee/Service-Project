@@ -27,18 +27,23 @@ def get_event_from_kafka(event_type, index):
     topic = client.topics[str.encode(app_config['events']['topic'])]
     consumer = topic.get_simple_consumer(reset_offset_on_start=True, consumer_timeout_ms=1000)
 
+    # Track separate indices for each event type
+    event_index = 0
+
     try:
-        for idx, msg in enumerate(consumer):
-            if idx == index:
-                msg_str = msg.value.decode('utf-8')
-                msg = json.loads(msg_str)
-                if msg['type'] == event_type:
+        for msg in consumer:
+            msg_str = msg.value.decode('utf-8')
+            msg = json.loads(msg_str)
+            if msg['type'] == event_type:
+                if event_index == index:
                     logger.info(f"Returning {event_type} at index {index}")
                     return msg['payload'], 200
+                event_index += 1  # Only increment if the type matches
         return { "message": "Not Found" }, 404
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return { "message": "Error retrieving message" }, 500
+
 
 def get_event_stats():
     hostname = f"{app_config['events']['hostname']}:{app_config['events']['port']}"
@@ -79,4 +84,4 @@ app.add_middleware(
 app.add_api("openapi.yml")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8110)
+    app.run(host='0.0.0.0',port=8110)

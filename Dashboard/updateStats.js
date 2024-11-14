@@ -1,9 +1,9 @@
 /* UPDATE THESE VALUES TO MATCH YOUR SETUP */
 
-const STATS_API_URL = "ryankafkajenkins.westus2.cloudapp.azure.com:8100/stats"
+const STATS_API_URL = "http://ryankafkajenkins.westus2.cloudapp.azure.com:8100/stats"
 const EVENTS_URL = {
-    "sensor-data": "ryankafkajenkins.westus2.cloudapp.azure.com:8110/sensor-data",
-    "user-command": "ryankafkajenkins.westus2.cloudapp.azure.com:8110/user-command"
+    "sensor-data": "http://ryankafkajenkins.westus2.cloudapp.azure.com:8110/sensor_data",
+    "user-command": "http://ryankafkajenkins.westus2.cloudapp.azure.com:8110/user_command"
 }
 
 // This function fetches and updates the general statistics
@@ -20,7 +20,7 @@ const getStats = (statsUrl) => {
 
 // This function fetches a single event from the audit service
 const getEvent = (eventType) => {
-    const eventIndex = Math.floor(Math.random() * 1000)
+    const eventIndex = Math.floor(Math.random() * 25)
     // const eventIndex = 999999
 
     fetch(`${EVENTS_URL[eventType]}?index=${eventIndex}`)
@@ -43,7 +43,7 @@ const updateEventHTML = (data, eventType, error = false) => {
     const { index, ...values } = data
     const elem = document.getElementById(`event-${eventType}`)
     elem.innerHTML = `<h5>Event ${index}</h5>`
-    
+
     // for error messages
     if (error === true) {
         const errorMsg = document.createElement("code")
@@ -88,14 +88,14 @@ const updateStatsHTML = (data, error = false) => {
 const setup = () => {
     const interval = setInterval(() => {
         getStats(STATS_API_URL)
-        getEvent("snow")
-        getEvent("lift")
+        getEvent("sensor-data")
+        getEvent("user-command")
     }, 5000); // Update every 5 seconds
 
     // initial call
     getStats(STATS_API_URL)
-    getEvent("snow")
-    getEvent("lift")
+    getEvent("sensor-data")
+    getEvent("user-command")
     // clearInterval(interval);
 }
 
