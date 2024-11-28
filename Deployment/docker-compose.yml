@@ -6,25 +6,36 @@ services:
     ports:
       - "2181"
     hostname: zookeeper
+    volumes:
+      - /home/ryan/zookeeper/data:/opt/zookeeper-3.4.13/data  # Persistent data for Zookeeper
 
   kafka:
     image: wurstmeister/kafka
     command: [start-kafka.sh]
     ports:
-      - "9092:9092"
+      - "9092:9092"  # External listener port
     hostname: kafka
     environment:
       KAFKA_CREATE_TOPICS: "events:1:1"  # topic:partition:replicas
       KAFKA_ADVERTISED_HOST_NAME: kafka  # Internal hostname for Docker
       KAFKA_LISTENERS: INSIDE://:29092,OUTSIDE://:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://ryankafkajenkins.westus2.cloudapp.azure.com:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://ryankafkajenkins.westus2.cloudapp.azure.com:9092  # Restored to original
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LOG_DIRS: /kafka/kafka-logs  # Directory for Kafka logs
+      KAFKA_BROKER_ID: 1  # Unique broker ID
     volumes:
+      - /home/ryan/kafka/data:/kafka  # Persistent data for Kafka
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - "zookeeper"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]  # Check if port 9092 is open
+      interval: 10s
+      retries: 3
+      start_period: 5s
+      timeout: 5s
 
   db:
     image: mysql:5.7

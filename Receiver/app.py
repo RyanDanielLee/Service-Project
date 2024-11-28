@@ -6,10 +6,12 @@ from connexion import NoContent
 import requests
 from datetime import datetime
 import uuid
+import time
 from pykafka import KafkaClient
+from pykafka.exceptions import KafkaException
 import json
 
-
+# Load configurations
 with open('app_conf.yml', 'r') as f:
     app_config = yaml.safe_load(f.read())
 
@@ -18,6 +20,36 @@ with open('log_conf.yml', 'r') as f:
 logging.config.dictConfig(log_config)
 
 logger = logging.getLogger('basicLogger')
+
+# Constants for retry logic
+MAX_RETRIES = 5
+RETRY_INTERVAL = 10  # seconds
+
+
+def initialize_kafka_client():
+    """Initialize Kafka client with retry logic."""
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            logger.info(f"Attempting to connect to Kafka (attempt {retries + 1}/{MAX_RETRIES})...")
+            kafka_client = KafkaClient(hosts=f"{app_config['events']['hostname']}:{app_config['events']['port']}")
+            kafka_topic = kafka_client.topics[app_config['events']['topic'].encode()]
+            kafka_producer = kafka_topic.get_sync_producer()
+            logger.info("Kafka client connected successfully.")
+            return kafka_producer
+        except KafkaException as e:
+            logger.warning(f"Failed to connect to Kafka: {str(e)}")
+            retries += 1
+            if retries < MAX_RETRIES:
+                logger.info(f"Retrying in {RETRY_INTERVAL} seconds...")
+                time.sleep(RETRY_INTERVAL)
+            else:
+                logger.error("Max retries reached. Kafka connection failed.")
+                return None
+
+
+# Initialize Kafka producer on service startup
+kafka_producer = initialize_kafka_client()
 
 
 def receive_sensor_data(body):
@@ -34,14 +66,9 @@ def receive_sensor_data(body):
 
         body['trace_id'] = trace_id
 
-        # Produce Kafka message
-        try:
-            client = KafkaClient(hosts=f"{app_config['events']['hostname']}:{app_config['events']['port']}")
-            topic = client.topics[app_config['events']['topic'].encode()]
-            producer = topic.get_sync_producer()
-        except Exception as kafka_init_error:
-            logger.error(f"Failed to initialize Kafka: {str(kafka_init_error)}")
-            return {"error": "Kafka initialization failed"}, 500
+        if kafka_producer is None:
+            logger.error("Kafka producer is not initialized.")
+            return {"error": "Kafka unavailable"}, 500
 
         msg = {
             "type": "sensor_data",
@@ -51,22 +78,11 @@ def receive_sensor_data(body):
         msg_str = json.dumps(msg)
 
         try:
-            producer.produce(msg_str.encode('utf-8'))
+            kafka_producer.produce(msg_str.encode('utf-8'))
+            logger.info(f"Produced sensor data event with trace id: {trace_id}")
         except Exception as produce_error:
             logger.error(f"Failed to produce message to Kafka: {str(produce_error)}")
             return {"error": "Failed to produce event"}, 500
-
-        logger.info(f"Produced sensor data event with trace id: {trace_id}")
-
-        # # Forward the event to the storage service
-        # try:
-        #     response = requests.post(app_config['eventstore1']['url'], json=body)
-        #     if response.status_code != 201:
-        #         logger.error(f"Failed to store sensor data in storage service: {response.text}")
-        #         return {"error": "Failed to store event in storage service"}, 500
-        # except Exception as e:
-        #     logger.error(f"Error forwarding to storage service: {str(e)}")
-        #     return {"error": "Failed to forward event to storage service"}, 500
 
         return NoContent, 201
 
@@ -89,14 +105,9 @@ def receive_user_command(body):
 
         body['trace_id'] = trace_id
 
-        # Kafka message
-        try:
-            client = KafkaClient(hosts=f"{app_config['events']['hostname']}:{app_config['events']['port']}")
-            topic = client.topics[app_config['events']['topic'].encode()]
-            producer = topic.get_sync_producer()
-        except Exception as kafka_init_error:
-            logger.error(f"Failed to initialize Kafka: {str(kafka_init_error)}")
-            return {"error": "Kafka initialization failed"}, 500
+        if kafka_producer is None:
+            logger.error("Kafka producer is not initialized.")
+            return {"error": "Kafka unavailable"}, 500
 
         msg = {
             "type": "user_command",
@@ -106,21 +117,11 @@ def receive_user_command(body):
         msg_str = json.dumps(msg)
 
         try:
-            producer.produce(msg_str.encode('utf-8'))
+            kafka_producer.produce(msg_str.encode('utf-8'))
+            logger.info(f"Produced user command event with trace id: {trace_id}")
         except Exception as produce_error:
             logger.error(f"Failed to produce message to Kafka: {str(produce_error)}")
             return {"error": "Failed to produce event"}, 500
-
-        logger.info(f"Produced user command event with trace id: {trace_id}")
-
-        # try:
-        #     response = requests.post(app_config['eventstore2']['url'], json=body)
-        #     if response.status_code != 201:
-        #         logger.error(f"Failed to store user command in storage service: {response.text}")
-        #         return {"error": "Failed to store event in storage service"}, 500
-        # except Exception as e:
-        #     logger.error(f"Error forwarding to storage service: {str(e)}")
-        #     return {"error": "Failed to forward event to storage service"}, 500
 
         return NoContent, 201
 
@@ -129,12 +130,11 @@ def receive_user_command(body):
         return {"error": "Internal server error"}, 500
 
 
-
-    
 def get_sensor_data_readings():
     data = requests.args
     response = requests.get(app_config['eventstore1']['url'], params=data)
     return NoContent, response.status_code
+
 
 def get_user_command_events():
     data = requests.args
@@ -142,6 +142,7 @@ def get_user_command_events():
     return NoContent, response.status_code
 
 
+# Start the application
 app = connexion.FlaskApp(__name__, specification_dir='')
 app.add_api("openapi.yml", strict_validation=False, validate_responses=True)
 
