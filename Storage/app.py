@@ -1,7 +1,7 @@
 '''
 create_data.py in terminal
 
-POST 
+POST
 http://localhost:8090/sensor-data
 {
     "sensorId": "123",
@@ -20,7 +20,7 @@ http://localhost:8090/user-command
 }
 
 In terminal to check database
-sqlite 
+sqlite
 SELECT * FROM sensor_data;
 SELECT * FROM user_command;
 '''
@@ -40,7 +40,7 @@ import json
 from pykafka import KafkaClient
 from pykafka.common import OffsetType
 from threading import Thread
-
+from create_tables_mysql import create_tables
 
 
 with open('app_conf.yml', 'r') as f:
@@ -54,24 +54,25 @@ logger = logging.getLogger('basicLogger')
 
 
 logger.info(f"Connecting to MySQL database at {app_config['datastore']['hostname']}:{app_config['datastore']['port']}")
-
+logger.info(f"Database configuration: {app_config['datastore']}")
 DB_ENGINE = create_engine(f"mysql+pymysql://{app_config['datastore']['user']}:{app_config['datastore']['password']}@{app_config['datastore']['hostname']}:{app_config['datastore']['port']}/{app_config['datastore']['db']}")
 Base.metadata.bind = DB_ENGINE
 DB_SESSION = sessionmaker(bind=DB_ENGINE)
-
+#Base.metadata.create_all(DB_ENGINE)
 
 def receive_sensor_data(body):
+    print("here")
     session = DB_SESSION()
-    
+
     trace_id = body.get('trace_id', str(uuid.uuid4()))
 
     sensor_data = SensorData(
-        sensor_id=body['sensorId'], 
-        temperature=body['temperature'], 
-        timestamp=body['timestamp'], 
+        sensor_id=body['sensorId'],
+        temperature=body['temperature'],
+        timestamp=body['timestamp'],
         location=body['location'],
         trace_id=trace_id,
-        date_created=datetime.datetime.now()  
+        date_created=datetime.datetime.now()
     )
 
     session.add(sensor_data)
@@ -84,17 +85,18 @@ def receive_sensor_data(body):
 
 
 def receive_user_command(body):
+    print("here")
     session = DB_SESSION()
 
     trace_id = body.get('trace_id', str(uuid.uuid4()))
 
     user_command = UserCommand(
-        user_id=body['userId'], 
-        target_device=body['targetDevice'], 
-        target_temperature=body['targetTemperature'], 
+        user_id=body['userId'],
+        target_device=body['targetDevice'],
+        target_temperature=body['targetTemperature'],
         timestamp=body['timestamp'],
         trace_id=trace_id,
-        date_created=datetime.datetime.now()  
+        date_created=datetime.datetime.now()
     )
 
     session.add(user_command)
@@ -131,7 +133,7 @@ def get_sensor_data_readings(start_timestamp, end_timestamp):
         results_list = [reading.to_dict() for reading in readings]
         session.close()
 
-        logger.info("Query for sensor data readings after %s returns %d results" % 
+        logger.info("Query for sensor data readings after %s returns %d results" %
                     (start_timestamp, len(results_list)))
 
         return results_list, 200
@@ -143,21 +145,21 @@ def get_sensor_data_readings(start_timestamp, end_timestamp):
 
 def get_user_command_events(start_timestamp, end_timestamp):
     session = DB_SESSION()
-    
+
     start_timestamp_datetime = datetime.datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%S")
     end_timestamp_datetime = datetime.datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%S")
-    
+
     commands = session.query(UserCommand).filter(
         and_(UserCommand.date_created >= start_timestamp_datetime,
              UserCommand.date_created < end_timestamp_datetime)
     )
-    
+
     results_list = [command.to_dict() for command in commands]
     session.close()
-    
-    logger.info("Query for user command events after %s returns %d results" % 
+
+    logger.info("Query for user command events after %s returns %d results" %
                 (start_timestamp, len(results_list)))
-    
+
     return results_list, 200
 
 def process_messages():
@@ -172,9 +174,9 @@ def process_messages():
         msg = json.loads(msg_str)
         logger.info("Message: %s" % msg)
         payload = msg['payload']
-        if msg['type'] == 'sensor-data':
+        if msg['type'] == 'sensor_data':
             receive_sensor_data(payload)
-        elif msg['type'] == 'user-command':
+        elif msg['type'] == 'user_command':
             receive_user_command(payload)
         consumer.commit_offsets()
 
@@ -184,8 +186,8 @@ app = connexion.FlaskApp(__name__, specification_dir='')
 app.add_api("openapi.yml", strict_validation=True, validate_responses=True)
 
 if __name__ == "__main__":
+    create_tables()
     t1 = Thread(target=process_messages)
     t1.setDaemon(True)
     t1.start()
-    app.run(host='0.0.0.0', port=8090)
-
+    app.run(host='0.0.0.0',port=8090)
