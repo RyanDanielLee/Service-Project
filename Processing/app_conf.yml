@@ -1,7 +1,7 @@
 version: 1
 datastore:
-  filename: data.json
+  filename: /data/data.json
 scheduler:
   period_sec: 5
 eventstore:
-  url: http://localhost:8090
+  url: http://storage:8090
